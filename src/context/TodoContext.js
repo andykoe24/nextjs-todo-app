@@ -21,13 +21,13 @@ const initialState = {
 
 // Category definitions with colors
 export const categories = {
-  'Work': { color: 'bg-blue-500', textColor: 'text-blue-700', borderColor: 'border-blue-200' },
-  'Personal': { color: 'bg-green-500', textColor: 'text-green-700', borderColor: 'border-green-200' },
-  'Shopping': { color: 'bg-purple-500', textColor: 'text-purple-700', borderColor: 'border-purple-200' },
-  'Health': { color: 'bg-pink-500', textColor: 'text-pink-700', borderColor: 'border-pink-200' },
-  'Finance': { color: 'bg-yellow-500', textColor: 'text-yellow-700', borderColor: 'border-yellow-200' },
-  'Travel': { color: 'bg-indigo-500', textColor: 'text-indigo-700', borderColor: 'border-indigo-200' },
-  'Home': { color: 'bg-orange-500', textColor: 'text-orange-700', borderColor: 'border-orange-200' }
+  'Work': { color: 'bg-blue-500', hex: '#3b82f6', textColor: 'text-blue-700', borderColor: 'border-blue-200' },
+  'Personal': { color: 'bg-green-500', hex: '#22c55e', textColor: 'text-green-700', borderColor: 'border-green-200' },
+  'Shopping': { color: 'bg-purple-500', hex: '#a21caf', textColor: 'text-purple-700', borderColor: 'border-purple-200' },
+  'Health': { color: 'bg-pink-500', hex: '#ec4899', textColor: 'text-pink-700', borderColor: 'border-pink-200' },
+  'Finance': { color: 'bg-yellow-500', hex: '#eab308', textColor: 'text-yellow-700', borderColor: 'border-yellow-200' },
+  'Travel': { color: 'bg-indigo-500', hex: '#6366f1', textColor: 'text-indigo-700', borderColor: 'border-indigo-200' },
+  'Home': { color: 'bg-orange-500', hex: '#f97316', textColor: 'text-orange-700', borderColor: 'border-orange-200' }
 };
 
 const todoReducer = (state, action) => {
