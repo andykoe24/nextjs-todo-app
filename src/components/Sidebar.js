@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { List, Grid3X3, X, Upload, Download, FileText, PlusCircle } from 'lucide-react';
+import { List, Grid3X3, CalendarDays, X, Upload, Download, FileText, PlusCircle } from 'lucide-react';
 import { useTodo } from '../context/TodoContext';
 
 const Sidebar = ({ onClose }) => {
@@ -20,6 +20,12 @@ const Sidebar = ({ onClose }) => {
       label: 'Board',
       icon: Grid3X3,
       description: 'View tasks by category'
+    },
+    {
+      id: 'calendar',
+      label: 'Calendar',
+      icon: CalendarDays,
+      description: 'View tasks on a calendar'
     }
   ];
 

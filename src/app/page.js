@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import TodoList from '../components/TodoList';
 import BoardView from '../components/BoardView';
+import CalendarView from '../components/CalendarView';
 import Sidebar from '../components/Sidebar';
 import { TodoProvider, useTodo } from '../context/TodoContext';
 import { Menu, X } from 'lucide-react';
@@ -45,7 +46,7 @@ const MainContent = () => {
               <Menu className="h-5 w-5" />
             </button>
             <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {currentView === 'list' ? 'Task List' : 'Task Board'}
+              {currentView === 'list' ? 'Task List' : currentView === 'board' ? 'Task Board' : currentView === 'calendar' ? 'Calendar' : ''}
             </h1>
             <div className="w-10 lg:hidden" /> {/* Spacer for centering on mobile */}
           </div>
@@ -53,7 +54,7 @@ const MainContent = () => {
 
         {/* Main Content Area - Takes remaining space */}
         <main className="flex-1 overflow-hidden mt-2">
-          {currentView === 'list' ? <TodoList /> : <BoardView />}
+          {currentView === 'list' ? <TodoList /> : currentView === 'board' ? <BoardView /> : currentView === 'calendar' ? <CalendarView /> : null}
         </main>
       </div>
     </div>
