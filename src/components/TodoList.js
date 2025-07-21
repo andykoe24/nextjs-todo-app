@@ -92,6 +92,11 @@ const TodoList = () => {
   const [appliedPriorities, setAppliedPriorities] = useState(['high', 'medium', 'low']);
   const categoryDropdownRef = useRef(null);
   const priorityDropdownRef = useRef(null);
+  const allStatuses = ['complete', 'incomplete'];
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const [selectedStatuses, setSelectedStatuses] = useState(allStatuses);
+  const [appliedStatuses, setAppliedStatuses] = useState(allStatuses);
+  const statusDropdownRef = useRef(null);
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -101,6 +106,9 @@ const TodoList = () => {
       }
       if (priorityDropdownRef.current && !priorityDropdownRef.current.contains(event.target)) {
         setPriorityDropdownOpen(false);
+      }
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target)) {
+        setStatusDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -115,7 +123,10 @@ const TodoList = () => {
     if (!priorityDropdownOpen) {
       setSelectedPriorities(appliedPriorities);
     }
-  }, [categoryDropdownOpen, priorityDropdownOpen, appliedCategories, appliedPriorities]);
+    if (!statusDropdownOpen) {
+      setSelectedStatuses(appliedStatuses);
+    }
+  }, [categoryDropdownOpen, priorityDropdownOpen, statusDropdownOpen, appliedCategories, appliedPriorities, appliedStatuses]);
 
   // Filter tasks by search, category, and priority
   const { currentTasks, totalItems, totalPages, startIndex, endIndex } = useTodos({
@@ -130,7 +141,10 @@ const TodoList = () => {
   const filteredByQuickFilter = currentTasks.filter(task => {
     const catOk = appliedCategories.length === 0 || appliedCategories.includes(task.category);
     const priOk = appliedPriorities.length === 0 || appliedPriorities.includes(task.priority);
-    return catOk && priOk;
+    const statusOk = appliedStatuses.length === 0 ||
+      (appliedStatuses.includes('complete') && task.completed) ||
+      (appliedStatuses.includes('incomplete') && !task.completed);
+    return catOk && priOk && statusOk;
   });
 
   useEffect(() => {
@@ -162,11 +176,14 @@ const TodoList = () => {
       if (priorityDropdownOpen && !event.target.closest('.w-36')) {
         setPriorityDropdownOpen(false);
       }
+      if (statusDropdownOpen && !event.target.closest('.w-36')) {
+        setStatusDropdownOpen(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showSortDropdown, showPerPageDropdown, categoryDropdownOpen, priorityDropdownOpen]);
+  }, [showSortDropdown, showPerPageDropdown, categoryDropdownOpen, priorityDropdownOpen, statusDropdownOpen]);
 
   // Per page options
   const perPageOptions = [10, 25, 50, 100];
@@ -403,6 +420,41 @@ const TodoList = () => {
                     <span className={
                       pri === 'high' ? 'text-red-500' : pri === 'medium' ? 'text-orange-500' : 'text-yellow-500'
                     }>{pri.charAt(0).toUpperCase() + pri.slice(1)}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* Status Dropdown */}
+          <div className="relative w-36" ref={statusDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setStatusDropdownOpen(v => !v)}
+              className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors w-full justify-between"
+            >
+              <span>Status</span>
+              <ChevronDown className="h-3 w-3" />
+            </button>
+            {statusDropdownOpen && (
+              <div className="absolute left-0 mt-2 w-36 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-50 p-4">
+                {allStatuses.map(status => (
+                  <label key={status} className="flex items-center gap-2 text-sm mb-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedStatuses.includes(status)}
+                      onChange={e => {
+                        let newSelected;
+                        if (e.target.checked) {
+                          newSelected = [...selectedStatuses, status];
+                        } else {
+                          newSelected = selectedStatuses.filter(s => s !== status);
+                        }
+                        setSelectedStatuses(newSelected);
+                        setAppliedStatuses(newSelected);
+                      }}
+                      className="accent-blue-500"
+                    />
+                    <span>{status.charAt(0).toUpperCase() + status.slice(1)}</span>
                   </label>
                 ))}
               </div>
