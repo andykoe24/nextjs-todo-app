@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -74,6 +74,73 @@ const BoardView = () => {
     setAdding
   } = useTodo();
 
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const [priorityDropdownOpen, setPriorityDropdownOpen] = useState(false);
+  const allCategories = Object.keys(categories);
+  const allPriorities = ['high', 'medium', 'low'];
+  const [selectedCategories, setSelectedCategories] = useState(allCategories);
+  const [selectedPriorities, setSelectedPriorities] = useState(allPriorities);
+  const [appliedCategories, setAppliedCategories] = useState(allCategories);
+  const [appliedPriorities, setAppliedPriorities] = useState(allPriorities);
+  const applyClickedRef = useRef(false);
+  const categoryDropdownRef = useRef(null);
+  const priorityDropdownRef = useRef(null);
+
+  // Debounce search
+  useEffect(() => {
+    setIsSearching(true);
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setIsSearching(false);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  // Reset filter selections when dropdown closes (only if not applied)
+  useEffect(() => {
+    if (!categoryDropdownOpen && !applyClickedRef.current) {
+      setSelectedCategories(appliedCategories);
+    }
+    if (!priorityDropdownOpen && !applyClickedRef.current) {
+      setSelectedPriorities(appliedPriorities);
+    }
+    if (!categoryDropdownOpen && !priorityDropdownOpen) {
+      applyClickedRef.current = false;
+    }
+  }, [categoryDropdownOpen, priorityDropdownOpen, appliedCategories, appliedPriorities]);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target)) {
+        setCategoryDropdownOpen(false);
+      }
+      if (priorityDropdownRef.current && !priorityDropdownRef.current.contains(event.target)) {
+        setPriorityDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Filter tasks by search, category, and priority
+  const filteredBoardTodos = filteredTodos.filter(task => {
+    const matchesSearch = !debouncedSearch || task.text.toLowerCase().includes(debouncedSearch.toLowerCase());
+    const catOk = appliedCategories.length === 0 || appliedCategories.includes(task.category);
+    const priOk = appliedPriorities.length === 0 || appliedPriorities.includes(task.priority);
+    return matchesSearch && catOk && priOk;
+  });
+
+  // Group tasks by category (filtered)
+  const groupedTasks = {};
+  Object.keys(categories).forEach(category => {
+    groupedTasks[category] = filteredBoardTodos.filter(task => task.category === category);
+  });
+  groupedTasks['Uncategorized'] = filteredBoardTodos.filter(task => !task.category);
+
   const [activeId, setActiveId] = useState(null);
   const [addingToCategory, setAddingToCategory] = useState(null);
 
@@ -83,15 +150,6 @@ const BoardView = () => {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
-
-  // Group tasks by category
-  const groupedTasks = {};
-  Object.keys(categories).forEach(category => {
-    groupedTasks[category] = filteredTodos.filter(task => task.category === category);
-  });
-  
-  // Add uncategorized tasks
-  groupedTasks['Uncategorized'] = filteredTodos.filter(task => !task.category);
 
   const handleDragStart = (event) => {
     setActiveId(event.active.id);
@@ -164,8 +222,122 @@ const BoardView = () => {
     <div className="h-full w-full flex flex-col">
       {/* Search & Filter Bar */}
       <div className="shrink-0 p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 pt-16">
-        <input type="text" placeholder="Search tasks..." className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" />
-        {/* Add filter controls here if needed */}
+        <div className="flex flex-col md:flex-row gap-2 items-center">
+          {/* Search */}
+          <div className="relative w-full">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              placeholder="Search tasks..."
+              className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            />
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            {isSearching && (
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center text-blue-500 text-xs">
+                <svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                </svg>
+                Searching...
+              </div>
+            )}
+          </div>
+          {/* Category Dropdown */}
+          <div className="relative w-56" ref={categoryDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setCategoryDropdownOpen(v => !v)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-left flex items-center justify-between"
+            >
+              <div className="flex items-center gap-2">
+                <span className="font-medium">Category</span>
+                {appliedCategories.length > 0 && (
+                  <span className="ml-2 text-xs text-blue-500">({appliedCategories.length})</span>
+                )}
+              </div>
+              <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            </button>
+            {categoryDropdownOpen && (
+              <div className="absolute left-0 mt-2 w-42 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-50 p-4">
+                <div className="mb-3">
+                  {Object.keys(categories).map(cat => (
+                    <label key={cat} className="flex items-center gap-2 text-sm mb-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedCategories.includes(cat)}
+                        onChange={e => {
+                          let newSelected;
+                          if (e.target.checked) {
+                            newSelected = [...selectedCategories, cat];
+                          } else {
+                            newSelected = selectedCategories.filter(c => c !== cat);
+                          }
+                          setSelectedCategories(newSelected);
+                          setAppliedCategories(newSelected);
+                        }}
+                        className="accent-blue-500"
+                      />
+                      <div className={`w-3 h-3 rounded-full ${categories[cat].color}`}></div>
+                      <span>{cat}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          {/* Priority Dropdown */}
+          <div className="relative w-48" ref={priorityDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setPriorityDropdownOpen(v => !v)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-left flex items-center justify-between"
+            >
+              <div className="flex items-center gap-2">
+                <span className="font-medium">Priority</span>
+                {appliedPriorities.length > 0 && (
+                  <span className="ml-2 text-xs text-blue-500">({appliedPriorities.length})</span>
+                )}
+              </div>
+              <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            </button>
+            {priorityDropdownOpen && (
+              <div className="absolute left-0 mt-2 w-36 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-50 p-4">
+                <div className="mb-3">
+                  {['high', 'medium', 'low'].map(pri => (
+                    <label key={pri} className="flex items-center gap-2 text-sm mb-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedPriorities.includes(pri)}
+                        onChange={e => {
+                          let newSelected;
+                          if (e.target.checked) {
+                            newSelected = [...selectedPriorities, pri];
+                          } else {
+                            newSelected = selectedPriorities.filter(p => p !== pri);
+                          }
+                          setSelectedPriorities(newSelected);
+                          setAppliedPriorities(newSelected);
+                        }}
+                        className="accent-blue-500"
+                      />
+                      <div className={`w-3 h-3 rounded-full ${
+                        pri === 'high' ? 'bg-red-500' : pri === 'medium' ? 'bg-orange-500' : 'bg-yellow-500'
+                      }`}></div>
+                      <span className={
+                        pri === 'high' ? 'text-red-500' : pri === 'medium' ? 'text-orange-500' : 'text-yellow-500'
+                      }>{pri.charAt(0).toUpperCase() + pri.slice(1)}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
       {/* Board View - Full height with horizontal scroll */}
       <div className="flex-1 min-h-0 w-full overflow-x-auto overflow-y-hidden">
@@ -177,18 +349,17 @@ const BoardView = () => {
           onDragCancel={handleDragCancel}
         >
           <div className="flex gap-4 h-full p-4" style={{ minWidth: 'max-content' }}>
-            {Object.keys(categories).map((category) => {
-              const categoryTasks = filteredTodos.filter(task => 
+            {[...Object.keys(categories), 'Uncategorized'].filter(cat => appliedCategories.includes(cat)).map((category) => {
+              const categoryTasks = filteredBoardTodos.filter(task => 
                 category === 'Uncategorized' 
                   ? (!task.category || task.category === '') 
                   : task.category === category
               );
-              
               return (
                 <div key={category} className="w-96 flex-shrink-0 flex flex-col bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm">
                   {/* Kanban Column Header with Accent Bar */}
                   <div className="flex items-center justify-between mb-2 flex-shrink-0 px-4 pt-4 relative">
-                    <div className={`absolute left-0 top-0 h-2 w-full rounded-t-xl ${categories[category].color}`}></div>
+                    <div className={`absolute left-0 top-0 h-2 w-full rounded-t-xl ${categories[category]?.color || 'bg-gray-400'}`}></div>
                     <div className="flex items-center gap-2 z-10">
                       <h3 className="font-semibold text-gray-900 dark:text-white">{category}</h3>
                       <span className="text-sm text-gray-500 dark:text-gray-400">({categoryTasks.length})</span>
@@ -227,7 +398,6 @@ const BoardView = () => {
                                 onDelete={handleDeleteTask}
                                 onDuplicate={handleDuplicateTask}
                               />
-                              
                               {/* Show EditTodo inline below the task being edited */}
                               {editingTaskId === task.id && editingTask && (
                                 <div className="mt-3">
