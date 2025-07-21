@@ -84,36 +84,49 @@ const TodoList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
-  const [selectedCategories, setSelectedCategories] = useState([]);
-  const [selectedPriorities, setSelectedPriorities] = useState([]);
-  const [appliedCategories, setAppliedCategories] = useState([]);
-  const [appliedPriorities, setAppliedPriorities] = useState([]);
-  const applyClickedRef = useRef(false);
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const [priorityDropdownOpen, setPriorityDropdownOpen] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState(Object.keys(categories));
+  const [selectedPriorities, setSelectedPriorities] = useState(['high', 'medium', 'low']);
+  const [appliedCategories, setAppliedCategories] = useState(Object.keys(categories));
+  const [appliedPriorities, setAppliedPriorities] = useState(['high', 'medium', 'low']);
+  const categoryDropdownRef = useRef(null);
+  const priorityDropdownRef = useRef(null);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target)) {
+        setCategoryDropdownOpen(false);
+      }
+      if (priorityDropdownRef.current && !priorityDropdownRef.current.contains(event.target)) {
+        setPriorityDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Reset filter selections when dropdown closes (only if not applied)
   useEffect(() => {
-    if (!filterDropdownOpen && !applyClickedRef.current) {
+    if (!categoryDropdownOpen) {
       setSelectedCategories(appliedCategories);
+    }
+    if (!priorityDropdownOpen) {
       setSelectedPriorities(appliedPriorities);
     }
-    if (!filterDropdownOpen) {
-      applyClickedRef.current = false;
-    }
-  }, [filterDropdownOpen]);
+  }, [categoryDropdownOpen, priorityDropdownOpen, appliedCategories, appliedPriorities]);
 
-  // Use the new hook for derived todos
+  // Filter tasks by search, category, and priority
   const { currentTasks, totalItems, totalPages, startIndex, endIndex } = useTodos({
     todos: filteredTodos,
     searchTerm: debouncedSearch,
-    statusFilter: 'all', // Already filtered in context
+    statusFilter: 'all',
     sortBy,
     sortOrder: 'asc',
     currentPage,
     itemsPerPage
   });
-
-  // Filter tasks by category/priority after search and before sort
   const filteredByQuickFilter = currentTasks.filter(task => {
     const catOk = appliedCategories.length === 0 || appliedCategories.includes(task.category);
     const priOk = appliedPriorities.length === 0 || appliedPriorities.includes(task.priority);
@@ -143,14 +156,17 @@ const TodoList = () => {
       if (showPerPageDropdown && !event.target.closest('.per-page-dropdown')) {
         setShowPerPageDropdown(false);
       }
-      if (filterDropdownOpen && !event.target.closest('.quick-filter-dropdown')) {
-        setFilterDropdownOpen(false);
+      if (categoryDropdownOpen && !event.target.closest('.w-42')) {
+        setCategoryDropdownOpen(false);
+      }
+      if (priorityDropdownOpen && !event.target.closest('.w-36')) {
+        setPriorityDropdownOpen(false);
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showSortDropdown, showPerPageDropdown, filterDropdownOpen]);
+  }, [showSortDropdown, showPerPageDropdown, categoryDropdownOpen, priorityDropdownOpen]);
 
   // Per page options
   const perPageOptions = [10, 25, 50, 100];
@@ -301,74 +317,94 @@ const TodoList = () => {
 
         {/* Right side - Filter and Sort dropdowns */}
         <div className="flex items-center gap-2 ml-auto">
-          {/* Quick Filter Button */}
-          <div className="relative quick-filter-dropdown">
+          {/* Search Input */}
+          <div className="relative w-70 mr-2">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              placeholder="Search tasks..."
+              className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            />
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+          </div>
+          {/* Category Dropdown */}
+          <div className="relative w-42 mr-2" ref={categoryDropdownRef}>
             <button
-              onClick={() => setFilterDropdownOpen(v => !v)}
-              className="flex items-center gap-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              type="button"
+              onClick={() => setCategoryDropdownOpen(v => !v)}
+              className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors w-full justify-between"
             >
-              <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707l-6.414 6.414A1 1 0 0013 13.414V19a1 1 0 01-1.447.894l-2-1A1 1 0 019 18v-4.586a1 1 0 00-.293-.707L2.293 6.707A1 1 0 012 6V4z" /></svg>
-              Filter
+              <span>Category</span>
+              <ChevronDown className="h-3 w-3" />
             </button>
-            {filterDropdownOpen && (
-              <div className="absolute left-0 mt-2 w-46 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-50 p-4">
-                <div className="mb-3">
-                  <div className="font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">Category</div>
-                  {Object.keys(categories).map(cat => (
-                    <label key={cat} className="flex items-center gap-2 text-sm mb-1 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={selectedCategories.includes(cat)}
-                        onChange={e => setSelectedCategories(
-                          e.target.checked
-                            ? [...selectedCategories, cat]
-                            : selectedCategories.filter(c => c !== cat)
-                        )}
-                        className="accent-blue-500"
-                      />
-                      <span>{cat}</span>
-                    </label>
-                  ))}
-                </div>
-                <div className="mb-3">
-                  <div className="font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">Priority</div>
-                  {['high', 'medium', 'low'].map(pri => (
-                    <label key={pri} className="flex items-center gap-2 text-sm mb-1 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={selectedPriorities.includes(pri)}
-                        onChange={e => setSelectedPriorities(
-                          e.target.checked
-                            ? [...selectedPriorities, pri]
-                            : selectedPriorities.filter(p => p !== pri)
-                        )}
-                        className="accent-blue-500"
-                      />
-                      <span className={
-                        pri === 'high' ? 'text-red-500' : pri === 'medium' ? 'text-orange-500' : 'text-yellow-500'
-                      }>{pri.charAt(0).toUpperCase() + pri.slice(1)}</span>
-                    </label>
-                  ))}
-                </div>
-                <div className="flex gap-2 justify-end mt-4">
-                  <button
-                    onClick={() => {
-                      applyClickedRef.current = true;
-                      setAppliedCategories(selectedCategories);
-                      setAppliedPriorities(selectedPriorities);
-                      setFilterDropdownOpen(false);
-                    }}
-                    className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-                  >
-                    Apply
-                  </button>
-                  <button
-                    onClick={() => setFilterDropdownOpen(false)}
-                    className="px-4 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    Close
-                  </button>
-                </div>
+            {categoryDropdownOpen && (
+              <div className="absolute left-0 mt-2 w-42 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-50 p-4">
+                {Object.keys(categories).map(cat => (
+                  <label key={cat} className="flex items-center gap-2 text-sm mb-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedCategories.includes(cat)}
+                      onChange={e => {
+                        let newSelected;
+                        if (e.target.checked) {
+                          newSelected = [...selectedCategories, cat];
+                        } else {
+                          newSelected = selectedCategories.filter(c => c !== cat);
+                        }
+                        setSelectedCategories(newSelected);
+                        setAppliedCategories(newSelected);
+                      }}
+                      className="accent-blue-500"
+                    />
+                    <div className={`w-3 h-3 rounded-full ${categories[cat].color}`}></div>
+                    <span>{cat}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* Priority Dropdown */}
+          <div className="relative w-36" ref={priorityDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setPriorityDropdownOpen(v => !v)}
+              className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors w-full justify-between"
+            >
+              <span>Priority</span>
+              <ChevronDown className="h-3 w-3" />
+            </button>
+            {priorityDropdownOpen && (
+              <div className="absolute left-0 mt-2 w-36 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-50 p-4">
+                {['high', 'medium', 'low'].map(pri => (
+                  <label key={pri} className="flex items-center gap-2 text-sm mb-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedPriorities.includes(pri)}
+                      onChange={e => {
+                        let newSelected;
+                        if (e.target.checked) {
+                          newSelected = [...selectedPriorities, pri];
+                        } else {
+                          newSelected = selectedPriorities.filter(p => p !== pri);
+                        }
+                        setSelectedPriorities(newSelected);
+                        setAppliedPriorities(newSelected);
+                      }}
+                      className="accent-blue-500"
+                    />
+                    <div className={`w-3 h-3 rounded-full ${
+                      pri === 'high' ? 'bg-red-500' : pri === 'medium' ? 'bg-orange-500' : 'bg-yellow-500'
+                    }`}></div>
+                    <span className={
+                      pri === 'high' ? 'text-red-500' : pri === 'medium' ? 'text-orange-500' : 'text-yellow-500'
+                    }>{pri.charAt(0).toUpperCase() + pri.slice(1)}</span>
+                  </label>
+                ))}
               </div>
             )}
           </div>
@@ -388,7 +424,7 @@ const TodoList = () => {
 
             {/* Sort dropdown */}
             {showSortDropdown && (
-              <div className="absolute right-0 top-full mt-1 w-64 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-50">
+              <div className="absolute right-0 top-full mt-1 w-36 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-50">
                 <div className="py-1">
                   <button
                     onClick={() => handleSortChange('default')}
@@ -425,25 +461,6 @@ const TodoList = () => {
             )}
           </div>
         </div>
-      </div>
-      {/* Search Bar */}
-      <div className="p-4 pb-0 relative">
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
-          placeholder="Search tasks..."
-          className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-        />
-        {isSearching && (
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center text-blue-500 text-xs">
-            <svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-            </svg>
-            Searching...
-          </div>
-        )}
       </div>
 
       {/* Scrollable Task List Area */}
