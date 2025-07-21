@@ -18,7 +18,8 @@ const CalendarView = () => {
     dispatch,
     isAdding,
     setAdding,
-    addTodo
+    addTodo,
+    updateTodo
   } = useTodo();
 
   // --- Filter Bar State (copied from BoardView) ---
@@ -142,6 +143,27 @@ const CalendarView = () => {
   };
   const handleCancelAdd = () => {
     setAdding(false);
+  };
+
+  // Handler for drag & drop and resize
+  const handleEventChange = (changeInfo) => {
+    const { event } = changeInfo;
+    const todoId = event.id;
+    const start = event.start;
+    let dueDate = null;
+    let dueTime = null;
+    if (start) {
+      const yyyy = start.getFullYear();
+      const mm = String(start.getMonth() + 1).padStart(2, '0');
+      const dd = String(start.getDate()).padStart(2, '0');
+      dueDate = `${yyyy}-${mm}-${dd}`;
+    }
+    if (event.allDay) {
+      dueTime = null;
+    } else {
+      dueTime = start ? start.toTimeString().slice(0, 5) : null;
+    }
+    updateTodo(todoId, { dueDate, dueTime });
   };
 
   return (
@@ -337,6 +359,9 @@ const CalendarView = () => {
             dayMaxEventRows={3}
             fixedWeekCount={false}
             aspectRatio={1.5}
+            editable={true}
+            eventDrop={handleEventChange}
+            eventResize={handleEventChange}
             // Add more FullCalendar props as needed
           />
         </div>
