@@ -128,23 +128,30 @@ const TodoList = () => {
     }
   }, [categoryDropdownOpen, priorityDropdownOpen, statusDropdownOpen, appliedCategories, appliedPriorities, appliedStatuses]);
 
-  // Filter tasks by search, category, and priority
+  // Apply all filters BEFORE pagination
+  const fullyFilteredTodos = filteredTodos.filter(task => {
+    // Search
+    const searchOk = !debouncedSearch || task.text.toLowerCase().includes(debouncedSearch.toLowerCase());
+    // Category
+    const catOk = appliedCategories.length === 0 || appliedCategories.includes(task.category);
+    // Priority
+    const priOk = appliedPriorities.length === 0 || appliedPriorities.includes(task.priority);
+    // Status
+    const statusOk = appliedStatuses.length === 0 ||
+      (appliedStatuses.includes('complete') && task.completed) ||
+      (appliedStatuses.includes('incomplete') && !task.completed);
+    return searchOk && catOk && priOk && statusOk;
+  });
+
+  // Now paginate the fully filtered list
   const { currentTasks, totalItems, totalPages, startIndex, endIndex } = useTodos({
-    todos: filteredTodos,
-    searchTerm: debouncedSearch,
-    statusFilter: 'all',
+    todos: fullyFilteredTodos,
+    searchTerm: '', // already filtered
+    statusFilter: 'all', // already filtered
     sortBy,
     sortOrder: 'asc',
     currentPage,
     itemsPerPage
-  });
-  const filteredByQuickFilter = currentTasks.filter(task => {
-    const catOk = appliedCategories.length === 0 || appliedCategories.includes(task.category);
-    const priOk = appliedPriorities.length === 0 || appliedPriorities.includes(task.priority);
-    const statusOk = appliedStatuses.length === 0 ||
-      (appliedStatuses.includes('complete') && task.completed) ||
-      (appliedStatuses.includes('incomplete') && !task.completed);
-    return catOk && priOk && statusOk;
   });
 
   useEffect(() => {
@@ -526,7 +533,7 @@ const TodoList = () => {
             onDragCancel={handleDragCancel}
           >
             <div className="space-y-3">
-              {filteredByQuickFilter.length === 0 ? (
+              {currentTasks.length === 0 ? (
                 <div className="flex items-center justify-center min-h-[400px]">
                   <div className="text-center">
                     <div className="text-gray-400 dark:text-gray-500 mb-4">
@@ -554,8 +561,8 @@ const TodoList = () => {
                   </div>
                 </div>
               ) : (
-                <SortableContext items={filteredByQuickFilter.map(task => task.id)} strategy={verticalListSortingStrategy}>
-                  {filteredByQuickFilter.map((task) => (
+                <SortableContext items={currentTasks.map(task => task.id)} strategy={verticalListSortingStrategy}>
+                  {currentTasks.map((task) => (
                     <div key={task.id}>
                       <SortableTodoItem
                         task={task}
