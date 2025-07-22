@@ -19,6 +19,8 @@ const initialState = {
   currentView: 'list'
 };
 
+const LOCAL_STORAGE_KEY = 'todos';
+
 // Category definitions with colors
 export const categories = {
   'Work': { color: 'bg-blue-500', hex: '#3b82f6', textColor: 'text-blue-700', borderColor: 'border-blue-200' },
@@ -275,6 +277,30 @@ const todoReducer = (state, action) => {
 
 export const TodoProvider = ({ children }) => {
   const [state, dispatch] = useReducer(todoReducer, initialState);
+
+  // Load todos from LocalStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedTodos = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (storedTodos) {
+        try {
+          const parsed = JSON.parse(storedTodos);
+          if (Array.isArray(parsed)) {
+            dispatch({ type: 'IMPORT_TODOS', payload: parsed });
+          }
+        } catch (e) {
+          // Ignore parse errors
+        }
+      }
+    }
+  }, []);
+
+  // Save todos to LocalStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state.todos));
+    }
+  }, [state.todos]);
 
   // Filter and sort todos
   useEffect(() => {
