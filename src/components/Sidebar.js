@@ -169,6 +169,14 @@ const Sidebar = ({ onClose }) => {
     reader.readAsText(file);
   };
 
+  // Clear all LocalStorage data and reload
+  const handleClearAllData = () => {
+    if (window.confirm('Are you sure you want to clear all tasks and data? This cannot be undone.')) {
+      localStorage.clear();
+      window.location.reload();
+    }
+  };
+
   return (
     <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-screen flex flex-col">
       {/* Header */}
@@ -258,6 +266,22 @@ const Sidebar = ({ onClose }) => {
               </button>
             );
           })}
+
+          {/* Clear All Data CTA as red clickable text, with hover bg */}
+          <div
+            onClick={handleClearAllData}
+            className="w-full flex items-center gap-3 px-3 py-2 mt-2 cursor-pointer select-none transition-colors duration-200 hover:bg-red-50 focus:bg-red-50 rounded-lg"
+            style={{ color: '#dc2626' }} // Tailwind red-600
+            role="button"
+            tabIndex={0}
+            onKeyPress={e => { if (e.key === 'Enter' || e.key === ' ') handleClearAllData(); }}
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            <div className="flex-1">
+              <div className="font-medium">Clear All Data</div>
+              <div className="text-xs" style={{ color: '#fca5a5' }}>Remove all tasks and settings</div>
+            </div>
+          </div>
         </div>
       </div>
 
