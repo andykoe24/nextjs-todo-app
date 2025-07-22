@@ -74,8 +74,8 @@ export function paginateTodos(todos, currentPage, itemsPerPage) {
 // Date formatting (from TodoItem)
 export function formatDueDate(dateString, timeString) {
   if (!dateString) return null;
-  const dueDate = moment(dateString);
-  const today = moment();
+  const dueDate = moment(dateString).startOf('day');
+  const today = moment().startOf('day');
   const diffDays = dueDate.diff(today, 'days');
   let timeDisplay = '';
   if (timeString) {
